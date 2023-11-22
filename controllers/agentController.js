@@ -15,6 +15,32 @@ export const getAllAgent = (req, res) => {
   }
 };
 
+export const getAgentById = (req, res) => {
+  const { agent_id } = req.params;
+  db.query(`CALL select_agent(${agent_id})`, (err, results) => {
+    if (err) {
+      res.status(500).json({
+        status: "error",
+        message: "Gagal mengambil member",
+        error: err.message,
+      });
+    } else {
+      if (results[0].length > 0) {
+        res.json({
+          status: "success",
+          message: `Agent ID ${agent_id} berhasil ditemukan`,
+          payload: results[0][0],
+        });
+      } else {
+        res.status(404).json({
+          status: "error",
+          message: `Agent ID ${agent_id} tidak ditemukan`,
+        });
+      }
+    }
+  });
+};
+
 export const insertAgent = (req, res) => {
   const { body } = req;
   try {
@@ -32,84 +58,39 @@ export const insertAgent = (req, res) => {
   }
 };
 
-// export const insertAgent = (req, res) => {
-//   const { body } = req;
-//   try {
-//     // Cek apakah data sudah ada dalam database
-//     db.query(`SELECT id_agent FROM agent WHERE id_agent = ('${body.id_agent}')`, (err, results) => {
-//       if (err) {
-//         errorServer(res, err);
-//       } else {
-//         if (results.length > 0) {
-//           // Data sudah ada, kirim respons dengan pesan "Data Sudah Ditambahkan"
-//           res.status(400).json({
-//             status: "error",
-//             message: "Data Sudah Ditambahkan",
-//           });
-//         } else {
-//           // Data belum ada, lakukan penyisipan data
-//           db.query(
-//             `CALL insert_agent ('${body.id_agent}', '${body.agent}', '${body.country}')`,
-//             (err, results) => {
-//               if (err) {
-//                 errorServer(res, err);
-//               } else {
-//                 res.status(201).json({
-//                   status: "success",
-//                   message: "Create new hero successfully",
-//                 });
-//               }
-//             }
-//           );
-//         }
-//       }
-//     });
-//   } catch (error) {
-//     errorServer(res, error);
-//   }
-// };
-
-// export const updateAgent = (req, res) => {
-//   const { body } = req;
-//   try {
-//     db.query(
-//       `CALL update_agent('${body.id_agent}', '${body.agent}', '${body.country}');`,
-//       (err, results) => {
-//         if (err) {
-//           // Handle any errors that occur during the query
-//           errorServer(res, err);
-//         } else {
-//           if (results.affectedRows === 0) {
-//             // No data was updated, meaning the data doesn't exist
-//             res.status(404).json({
-//               status: "error",
-//               message: "Data sudah tidak ada",
-//             });
-//           } else {
-//             // Data was successfully updated
-//             res.status(200).json({
-//               status: "success",
-//               message: "Update Berhasil",
-//             });
-//           }
-//         }
-//       }
-//     );
-//   } catch (error) {
-//     // Handle other types of errors
-//     errorServer(res, error);
-//   }
-// };
-
 export const updateAgent = (req, res) => {
   const { body } = req;
+
+  if (!body.id_agent) {
+    return res.status(400).json({
+      status: "error",
+      message: "ID Player harus disertakan untuk melakukan pembaruan",
+    });
+  }
+
   try {
     db.query(
-      `CALL update_agent('${body.id_agent}', '${body.agent}', '${body.country}');`,
-      (err, results) => {
+      `UPDATE agent SET
+      agent = '${body.agent}',
+      country = '${body.country}'
+      WHERE id_agent = '${body.id_agent}'`,
+      (updateErr, updateResults) => {
+        if (updateErr) {
+          return errorServer(res, updateErr);
+        }
+
+        const rowCount = updateResults.affectedRows;
+
+        if (rowCount === 0) {
+          return res.status(404).json({
+            status: "error",
+            message: "ID Player tidak ditemukan",
+          });
+        }
+
         res.status(200).json({
           status: "success",
-          message: "Update Berhasil",
+          message: "Data Player Berhasil di Update",
         });
       }
     );
@@ -118,69 +99,25 @@ export const updateAgent = (req, res) => {
   }
 };
 
-// export const updateAgent = (req, res) => {
-//   const { body } = req;
-//   try {
-//     db.query(
-//       `CALL update_agent('${body.id_agent}', '${body.agent}', '${body.country}');`,
-//       (err, results) => {
-//         if (err) {
-//           errorServer(res, err);
-//         } else if (results.affectedRows === 0) {
-//           res.status(404).json({
-//             status: "error",
-//             message: "Data sudah tidak ada",
-//           });
-//         } else {
-//           res.status(200).json({
-//             status: "success",
-//             message: "Update Berhasil",
-//           });
-//         }
-//       }
-//     );
-//   } catch (error) {
-//     errorServer(res, error);
-//   }
-// };
-
 export const deleteAgent = (req, res) => {
   const { body } = req;
   try {
     db.query(`CALL delete_agent('${body.id_agent}')`, (err, results) => {
-      res.status(200).json({
-        status: "success",
-        message: "ID Berhasil di Delete",
-      });
+      if (err) {
+        errorServer(res, err);
+      } else if (results.affectedRows === 0) {
+        res.status(404).json({
+          status: "error",
+          message: "Data sudah tidak ada",
+        });
+      } else {
+        res.status(200).json({
+          status: "success",
+          message: "ID Berhasil di Delete",
+        });
+      }
     });
   } catch (error) {
     errorServer(res, error);
   }
 };
-
-// export const deleteAgent = (req, res) => {
-//   const { body } = req;
-//   try {
-//     db.query(`CALL delete_agent('${body.id_agent}')`, (err, results) => {
-//       if (err) {
-//         // Error occurred during the database query
-//         errorServer(res, err);
-//       } else if (results.affectedRows === 0) {
-//         // No data was deleted, meaning the data doesn't exist
-//         res.status(404).json({
-//           status: "error",
-//           message: "Data sudah tidak ada",
-//         });
-//       } else {
-//         // Data was successfully deleted
-//         res.status(200).json({
-//           status: "success",
-//           message: "ID Berhasil di Delete",
-//         });
-//       }
-//     });
-//   } catch (error) {
-//     // Handle other types of errors
-//     errorServer(res, error);
-//   }
-// };
