@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { getPlayerKD } from "../controllers/viewController.js";
+import { getPlayerView } from "../controllers/viewController.js";
 
 const viewRouter = Router();
 
-viewRouter.get("/", getPlayerKD);
+// viewRouter.get("/", getPlayerKD);
+viewRouter.get("/", getPlayerView);
 
 export default viewRouter;
